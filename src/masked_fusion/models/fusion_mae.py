@@ -57,7 +57,7 @@ class FusionMAE(pl.LightningModule):
 
         self.lr = lr
         self.fusion_encoder = fusion_encoder
-        self.save_hyperparameters()
+        #self.save_hyperparameters() # Throws SIGSEGV on Juwels?
 
     def _get_tokens_preds_loss(self, img_stack):
         img, cam_img = img_stack[:, 0:3, :, :], img_stack[:, 3:, :, :]
