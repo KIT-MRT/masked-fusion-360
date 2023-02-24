@@ -13,8 +13,8 @@ class FusionMAE(pl.LightningModule):
     def __init__(
         self,
         *,
-        encoder,
-        encoder2,
+        mae_encoder,
+        fusion_encoder,
         decoder_dim,
         masking_ratio=0.75,
         decoder_depth=1,
@@ -28,14 +28,14 @@ class FusionMAE(pl.LightningModule):
         ), "masking ratio must be kept between 0 and 1"
         self.masking_ratio = masking_ratio
 
-        # extract some hyperparameters and functions from encoder (vision transformer to be trained)
-        self.encoder = encoder
-        num_patches, encoder_dim = encoder.pos_embedding.shape[-2:]
+        # extract some hyperparameters and functions from mae_encoder (vision transformer to be trained)
+        self.mae_encoder = mae_encoder
+        num_patches, encoder_dim = mae_encoder.pos_embedding.shape[-2:]
 
-        self.to_patch = encoder.to_patch_embedding[0]
-        self.patch_to_emb = nn.Sequential(*encoder.to_patch_embedding[1:])
+        self.to_patch = mae_encoder.to_patch_embedding[0]
+        self.patch_to_emb = nn.Sequential(*mae_encoder.to_patch_embedding[1:])
 
-        pixel_values_per_patch = encoder.to_patch_embedding[2].weight.shape[-1]
+        pixel_values_per_patch = mae_encoder.to_patch_embedding[2].weight.shape[-1]
 
         # decoder parameters
         self.decoder_dim = decoder_dim
@@ -56,15 +56,7 @@ class FusionMAE(pl.LightningModule):
         self.to_pixels = nn.Linear(decoder_dim, pixel_values_per_patch)
 
         self.lr = lr
-        self.encoder2 = encoder2
-        self.cross_attn = CrossTransformer(
-            sm_dim=decoder_dim,
-            lg_dim=decoder_dim,
-            depth=2,
-            heads=8,
-            dim_head=64,
-            dropout=0.0,
-        )
+        self.fusion_encoder = fusion_encoder
 
     def _get_tokens_preds_loss(self, img_stack):
         img, cam_img = img_stack[:, 0:3, :, :], img_stack[:, 3:, :, :]
@@ -74,9 +66,9 @@ class FusionMAE(pl.LightningModule):
         patches = self.to_patch(img)
         batch, num_patches, *_ = patches.shape
 
-        # patch to encoder tokens and add positions
+        # patch to mae_encoder tokens and add positions
         tokens = self.patch_to_emb(patches)
-        tokens = tokens + self.encoder.pos_embedding[:, 1 : (num_patches + 1)]
+        tokens = tokens + self.mae_encoder.pos_embedding[:, 1 : (num_patches + 1)]
 
         # calculate of patches needed to be masked, and get random indices, dividing it up for mask vs unmasked
         num_masked = int(self.masking_ratio * num_patches)
@@ -94,9 +86,9 @@ class FusionMAE(pl.LightningModule):
         masked_patches = patches[batch_range, masked_indices]
 
         # attend with vision transformer
-        encoded_tokens = self.encoder.transformer(tokens)
+        encoded_tokens = self.mae_encoder.transformer(tokens)
 
-        # project encoder to decoder dimensions, if they are not equal - the paper says you can get away with a smaller dimension for decoder
+        # project mae_encoder to decoder dimensions, if they are not equal - the paper says you can get away with a smaller dimension for decoder
         decoder_tokens = self.enc_to_dec(encoded_tokens)
 
         # reapply decoder position embedding to unmasked tokens
@@ -126,7 +118,7 @@ class FusionMAE(pl.LightningModule):
         cam_x = self.encoder2.dropout(cam_x)
         cam_tokens = self.encoder2.transformer(cam_x)
 
-        # project encoder to decoder dimensions, if they are not equal - the paper says you can get away with a smaller dimension for decoder
+        # project mae_encoder to decoder dimensions, if they are not equal - the paper says you can get away with a smaller dimension for decoder
         cam_tokens = self.enc_to_dec(cam_tokens)
 
         # Cross-attn to fuse tokens
