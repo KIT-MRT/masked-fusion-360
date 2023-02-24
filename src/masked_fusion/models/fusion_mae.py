@@ -190,7 +190,7 @@ class FusionEncoder(nn.Module):
         cam_tokens = self.enc_to_dec(cam_tokens)
 
         # Cross-attn to fuse tokens
-        decoder_tokens, _ = self.cross_attn(
+        decoder_tokens, _ = self.cross_fusion(
             sm_tokens=decoder_tokens_lidar, lg_tokens=cam_tokens
         )
 
