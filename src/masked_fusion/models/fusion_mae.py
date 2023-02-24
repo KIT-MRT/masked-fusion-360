@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 from einops import repeat
 
-from vit_pytorch.vit import Transformer
+from vit_pytorch.vit import ViT, Transformer
 from vit_pytorch.cross_vit import CrossTransformer
 
 
@@ -163,8 +163,59 @@ class FusionMAE(pl.LightningModule):
 
 
 class FusionEncoder(nn.Module):
-    def __init__(self):
-        pass
-    
-    def forward(self, x):
-        pass
+    def __init__(
+        self,
+        image_size=(64, 1024),
+        patch_size=8,  # Standard 16x16, SegFormer 4x4
+        vit_num_classes=1000,
+        vit_dim=2048,
+        vit_depth=6,
+        vit_heads=8,
+        vit_mlp_dim=2048,
+        cross_vit_dim1=2048,
+        cross_vit_dim2=2048,
+        cross_vit_depth=2,
+        cross_vit_heads=8,
+        cross_vit_dim_head=64,
+        cross_vit_dropout=0.0,
+        decoder_dim=1024,
+    ):
+        super().__init__()
+        self.vit = ViT(
+            image_size=image_size,
+            patch_size=patch_size,
+            num_classes=vit_num_classes,
+            dim=vit_dim,
+            depth=vit_depth,
+            heads=vit_heads,
+            mlp_dim=vit_mlp_dim,
+        )
+        self.enc_to_dec = (
+            nn.Linear(vit_dim, decoder_dim) if vit_dim != decoder_dim else nn.Identity()
+        )
+        self.cross_fusion = CrossTransformer(
+            sm_dim=cross_vit_dim1,
+            lg_dim=cross_vit_dim2,
+            depth=cross_vit_depth,
+            heads=cross_vit_heads,
+            dim_head=cross_vit_dim_head,
+            dropout=cross_vit_dropout,
+        )
+
+    def forward(self, cam_img, decoder_tokens_lidar):
+        cam_x = self.encoder2.to_patch_embedding(cam_img)
+        cam_b, cam_n, _ = cam_x.shape
+        cam_cls_tokens = repeat(self.encoder2.cls_token, "1 1 d -> b 1 d", b=cam_b)
+        cam_x = torch.cat((cam_cls_tokens, cam_x), dim=1)
+        cam_x += self.encoder2.pos_embedding[:, : (cam_n + 1)]
+        cam_x = self.encoder2.dropout(cam_x)
+        cam_tokens = self.encoder2.transformer(cam_x)
+
+        cam_tokens = self.enc_to_dec(cam_tokens)
+
+        # Cross-attn to fuse tokens
+        decoder_tokens, _ = self.cross_attn(
+            sm_tokens=decoder_tokens_lidar, lg_tokens=cam_tokens
+        )
+
+        return decoder_tokens
