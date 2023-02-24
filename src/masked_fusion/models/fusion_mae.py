@@ -108,15 +108,15 @@ class FusionMAE(pl.LightningModule):
         decoder_tokens[batch_range, masked_indices] = mask_tokens
 
         # New cam feats without masking
-        # cam_tokens = self.encoder2(cam_img) # we don't want the mlp head
+        # cam_tokens = self.vit(cam_img) # we don't want the mlp head
         # https://github.com/lucidrains/vit-pytorch/blob/5699ed7d139062020d1394f0e85a07f706c87c09/vit_pytorch/vit.py#L115
-        cam_x = self.encoder2.to_patch_embedding(cam_img)
+        cam_x = self.vit.to_patch_embedding(cam_img)
         cam_b, cam_n, _ = cam_x.shape
-        cam_cls_tokens = repeat(self.encoder2.cls_token, "1 1 d -> b 1 d", b=cam_b)
+        cam_cls_tokens = repeat(self.vit.cls_token, "1 1 d -> b 1 d", b=cam_b)
         cam_x = torch.cat((cam_cls_tokens, cam_x), dim=1)
-        cam_x += self.encoder2.pos_embedding[:, : (cam_n + 1)]
-        cam_x = self.encoder2.dropout(cam_x)
-        cam_tokens = self.encoder2.transformer(cam_x)
+        cam_x += self.vit.pos_embedding[:, : (cam_n + 1)]
+        cam_x = self.vit.dropout(cam_x)
+        cam_tokens = self.vit.transformer(cam_x)
 
         # project mae_encoder to decoder dimensions, if they are not equal - the paper says you can get away with a smaller dimension for decoder
         cam_tokens = self.enc_to_dec(cam_tokens)
@@ -195,13 +195,13 @@ class FusionEncoder(nn.Module):
         )
 
     def forward(self, cam_img, decoder_tokens_lidar):
-        cam_x = self.encoder2.to_patch_embedding(cam_img)
+        cam_x = self.vit.to_patch_embedding(cam_img)
         cam_b, cam_n, _ = cam_x.shape
-        cam_cls_tokens = repeat(self.encoder2.cls_token, "1 1 d -> b 1 d", b=cam_b)
+        cam_cls_tokens = repeat(self.vit.cls_token, "1 1 d -> b 1 d", b=cam_b)
         cam_x = torch.cat((cam_cls_tokens, cam_x), dim=1)
-        cam_x += self.encoder2.pos_embedding[:, : (cam_n + 1)]
-        cam_x = self.encoder2.dropout(cam_x)
-        cam_tokens = self.encoder2.transformer(cam_x)
+        cam_x += self.vit.pos_embedding[:, : (cam_n + 1)]
+        cam_x = self.vit.dropout(cam_x)
+        cam_tokens = self.vit.transformer(cam_x)
 
         cam_tokens = self.enc_to_dec(cam_tokens)
 
