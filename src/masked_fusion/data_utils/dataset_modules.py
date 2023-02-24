@@ -47,13 +47,14 @@ class KITTI360RangeFishEye(Dataset):
         # left and right img
         img = np.hstack((img2[670:977], img3[670:977]))
         img = cv2.resize(img, self.img_dim)
+        img_tensor = self.transform(img)
 
         lidar_points = read_kitti_point_cloud(lidar_path)
         _, _, lidar_img = spherical_projection(add_range(lidar_points))
         lidar_img = lidar_img[..., 2:5].astype(np.float32)
+        lidar_img_tensor = self.transform(lidar_img)
 
-        tensor_stack = np.dstack((lidar_img, img))
-        tensor_stack = self.transform(tensor_stack)
+        tensor_stack = torch.cat((lidar_img_tensor, img_tensor), 0)
 
         return tensor_stack
 
