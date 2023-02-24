@@ -148,11 +148,9 @@ class FusionEncoder(nn.Module):
         vit_depth=6,
         vit_heads=8,
         vit_mlp_dim=2048,
-        cross_vit_dim1=2048,
-        cross_vit_dim2=2048,
         cross_vit_depth=2,
         cross_vit_heads=8,
-        cross_vit_dim_head=64,
+        cross_vit_dim_head=128,
         cross_vit_dropout=0.0,
         decoder_dim=1024,
     ):
@@ -170,8 +168,8 @@ class FusionEncoder(nn.Module):
             nn.Linear(vit_dim, decoder_dim) if vit_dim != decoder_dim else nn.Identity()
         )
         self.cross_fusion = CrossTransformer(
-            sm_dim=cross_vit_dim1,
-            lg_dim=cross_vit_dim2,
+            sm_dim=decoder_dim,
+            lg_dim=decoder_dim,
             depth=cross_vit_depth,
             heads=cross_vit_heads,
             dim_head=cross_vit_dim_head,
