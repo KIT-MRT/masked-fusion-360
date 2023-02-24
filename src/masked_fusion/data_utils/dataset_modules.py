@@ -6,6 +6,8 @@ import pytorch_lightning as pl
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader, random_split
 
+from process_point_clouds import read_kitti_point_cloud, spherical_projection, add_range
+
 
 class KITTI360RangeFishEye(Dataset):
     def __init__(self):
