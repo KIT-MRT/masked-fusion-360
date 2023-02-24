@@ -1,10 +1,10 @@
 import cv2
 import glob
 import numpy as np
-import matplotlib.pyplot as plt
+import pytorch_lightning as pl
 
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 
 
 class KITTI360RangeFishEye(Dataset):
@@ -54,3 +54,52 @@ class KITTI360RangeFishEye(Dataset):
         tensor_stack = self.transform(tensor_stack)
 
         return tensor_stack
+
+
+class KITTI360DataModule(pl.LightningDataModule):
+    def __init__(self, batch_size=32, num_dataloader_workers=8, pin_memory=True):
+        super().__init__()
+        self.batch_size = batch_size
+        self.num_dataloader_workers = num_dataloader_workers
+        self.pin_memory = pin_memory
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: str):
+        # Assign train/val datasets for use in dataloaders
+        if stage == "fit":
+            kitti_full = KITTI360RangeFishEye()
+            self.kitti_train, self.kitti_val = random_split(
+                kitti_full, [70000, 6251]
+            )  # check how many samples and split 90:10
+
+        if stage == "predict":
+            self.kitti_predict = KITTI360RangeFishEye()
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.kitti_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_dataloader_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=True,
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.kitti_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_dataloader_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=True,
+        )
+
+    def predict_dataloader(self):
+        return DataLoader(
+            self.kitti_predict,
+            batch_size=self.batch_size,
+            num_workers=self.num_dataloader_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=True,
+        )
