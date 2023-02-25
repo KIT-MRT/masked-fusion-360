@@ -7,7 +7,11 @@ import pytorch_lightning as pl
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader, random_split
 
-from .process_point_clouds import read_kitti_point_cloud, spherical_projection, add_range
+from .process_point_clouds import (
+    read_kitti_point_cloud,
+    spherical_projection,
+    add_range,
+)
 
 
 class KITTI360RangeFishEye(Dataset):
@@ -45,14 +49,27 @@ class KITTI360RangeFishEye(Dataset):
         img2 = cv2.imread(img2_path)
         img3 = cv2.imread(img3_path)
 
-        # left and right img
+        # Concat left and right img
         img = np.hstack((img2[670:977], img3[670:977]))
         img = cv2.resize(img, self.img_dim)
         img_tensor = self.transform(img)
 
         lidar_points = read_kitti_point_cloud(lidar_path)
         _, _, lidar_img = spherical_projection(add_range(lidar_points))
-        lidar_img = lidar_img[..., 2:5].astype(np.float32)
+
+        lidar_img = lidar_img.astype(np.float32)
+        height_view, intensity_view, range_view = (
+            lidar_img[..., 2],
+            lidar_img[..., 3],
+            lidar_img[..., 4],
+        )
+        height_view, intensity_view, range_view = (
+            min_max_scaling(height_view),
+            min_max_scaling(intensity_view),
+            min_max_scaling(range_view),
+        )
+
+        lidar_img_tensor = np.dstack((height_view, intensity_view, range_view))
         lidar_img_tensor = self.transform(lidar_img)
 
         tensor_stack = torch.cat((lidar_img_tensor, img_tensor), 0)
