@@ -107,3 +107,11 @@ class KITTI360DataModule(pl.LightningDataModule):
             pin_memory=self.pin_memory,
             persistent_workers=True,
         )
+
+
+def min_max_scaling(x: np.ndarray) -> np.ndarray:
+    x_min, x_max = x.min(), x.max()
+    x -= x_min
+    x /= (x_max - x_min) + np.finfo(np.float32).eps
+
+    return x
