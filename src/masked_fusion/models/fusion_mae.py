@@ -120,21 +120,21 @@ class FusionMAE(pl.LightningModule):
         # calculate reconstruction loss
         recon_loss = F.mse_loss(pred_pixel_values, masked_patches)
 
-        return tokens, decoder_tokens, pred_pixel_values, recon_loss
+        return tokens, masked_patches, masked_indices, pred_pixel_values, recon_loss
 
     def training_step(self, batch, batch_idx):
-        _, _, _, loss = self._get_tokens_preds_loss(batch)
+        _, _, _, _, loss = self._get_tokens_preds_loss(batch)
         self.log('train_loss', loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        _, _, _, loss = self._get_tokens_preds_loss(batch)
+        _, _, _, _, loss = self._get_tokens_preds_loss(batch)
         self.log('val_loss', loss, sync_dist=True)
         return loss
 
     def forward(self, batch):
-        tokens, decoder_tokens, preds, _ = self._get_tokens_preds_loss(batch)
-        return tokens, decoder_tokens, preds
+        tokens, masked_patches, masked_indices, preds, _ = self._get_tokens_preds_loss(batch)
+        return tokens, masked_patches, masked_indices, preds
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
