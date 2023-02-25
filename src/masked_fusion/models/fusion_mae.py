@@ -57,7 +57,7 @@ class FusionMAE(pl.LightningModule):
 
         self.lr = lr
         self.fusion_encoder = fusion_encoder
-        #self.save_hyperparameters() # Throws SIGSEGV on Juwels?
+        # self.save_hyperparameters() # Throws SIGSEGV on Juwels?
 
     def _get_tokens_preds_loss(self, img_stack):
         img, cam_img = img_stack[:, 0:3, :, :], img_stack[:, 3:, :, :]
@@ -109,7 +109,9 @@ class FusionMAE(pl.LightningModule):
         decoder_tokens[batch_range, masked_indices] = mask_tokens
 
         # New cam feats without masking and fusion
-        decoder_tokens = self.fusion_encoder(cam_img=cam_img, decoder_tokens_lidar=decoder_tokens)
+        decoder_tokens = self.fusion_encoder(
+            cam_img=cam_img, decoder_tokens_lidar=decoder_tokens
+        )
 
         decoded_tokens = self.decoder(decoder_tokens)
 
@@ -124,21 +126,35 @@ class FusionMAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         _, _, _, _, loss = self._get_tokens_preds_loss(batch)
-        self.log('train_loss', loss, sync_dist=True)
+        self.log("train_loss", loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         _, _, _, _, loss = self._get_tokens_preds_loss(batch)
-        self.log('val_loss', loss, sync_dist=True)
+        self.log("val_loss", loss, sync_dist=True)
         return loss
 
     def forward(self, batch):
-        tokens, masked_patches, masked_indices, preds, _ = self._get_tokens_preds_loss(batch)
+        tokens, masked_patches, masked_indices, preds, _ = self._get_tokens_preds_loss(
+            batch
+        )
         return tokens, masked_patches, masked_indices, preds
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
-        return optimizer
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR(
+                    optimizer,
+                    T_max=self.trainer.max_epochs,
+                    eta_min=self.lr * self.lr,
+                ),
+                "interval": "epoch",
+                "frequency": 1,
+                "name": "lr",
+            },
+        }
 
 
 class FusionEncoder(nn.Module):
