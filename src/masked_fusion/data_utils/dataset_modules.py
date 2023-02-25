@@ -70,7 +70,7 @@ class KITTI360RangeFishEye(Dataset):
         )
 
         lidar_img_tensor = np.dstack((height_view, intensity_view, range_view))
-        lidar_img_tensor = self.transform(lidar_img)
+        lidar_img_tensor = self.transform(lidar_img_tensor)
 
         tensor_stack = torch.cat((lidar_img_tensor, img_tensor), 0)
 
