@@ -147,8 +147,8 @@ class FusionMAE(pl.LightningModule):
             "lr_scheduler": {
                 "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR(
                     optimizer,
-                    T_max=self.trainer.max_epochs,
-                    eta_min=self.lr * self.lr,
+                    T_max=50,
+                    eta_min=1e-6,
                 ),
                 "interval": "epoch",
                 "frequency": 1,
