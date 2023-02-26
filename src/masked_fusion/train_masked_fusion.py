@@ -3,6 +3,7 @@ import torch
 
 from vit_pytorch import ViT
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import LearningRateMonitor
 from datetime import datetime
 
 from models.fusion_mae import FusionMAE, FusionEncoder
@@ -30,6 +31,8 @@ def main():
         decoder_depth=6,  # anywhere from 1 to 8
     )
 
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
+
     trainer = Trainer(
         precision=16,
         accelerator="gpu",
@@ -38,6 +41,7 @@ def main():
         strategy="ddp",
         max_time={"days": 0, "hours": 9},
         default_root_dir="/p/project/hai_mrt_pc/",
+        callbacks=[lr_monitor],
     )
 
     dm = KITTI360DataModule(
