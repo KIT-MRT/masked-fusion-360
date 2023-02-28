@@ -138,7 +138,7 @@ class FusionMAE(pl.LightningModule):
         ssim_full_input = multiscale_structural_similarity_index_measure(
             masked_patches[None, :], pred_pixel_values[None, :]
         )
-        batch_no_cam = torch.zeros(batch.shape)
+        batch_no_cam = torch.zeros(batch.shape, device=torch.device("cuda"))
         batch_no_cam[:, 0:3, :, :] = batch[:, 0:3, :, :]
         _, _, _, pred_pixel_values_no_cam, _ = self._get_tokens_preds_loss(batch_no_cam)
         ssim_no_cam = multiscale_structural_similarity_index_measure(
