@@ -7,6 +7,8 @@ from einops import repeat
 
 from vit_pytorch.vit import ViT, Transformer
 from vit_pytorch.cross_vit import CrossTransformer
+from torchmetrics.functional import total_variation
+from torchmetrics.functional import multiscale_structural_similarity_index_measure
 
 
 class FusionMAE(pl.LightningModule):
@@ -130,8 +132,27 @@ class FusionMAE(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        _, _, _, _, loss = self._get_tokens_preds_loss(batch)
+        _, masked_patches, _, pred_pixel_values, loss = self._get_tokens_preds_loss(
+            batch
+        )
+        ssim_full_input = multiscale_structural_similarity_index_measure(
+            masked_patches[None, :], pred_pixel_values[None, :]
+        )
+        batch_no_cam = torch.zeros(batch.shape)
+        batch_no_cam[:, 0:3, :, :] = batch[:, 0:3, :, :]
+        _, _, _, pred_pixel_values_no_cam, _ = self._get_tokens_preds_loss(batch_no_cam)
+        ssim_no_cam = multiscale_structural_similarity_index_measure(
+            masked_patches[None, :], pred_pixel_values_no_cam[None, :]
+        )
+        delta_total_variation = total_variation(
+            pred_pixel_values_no_cam[None, :]
+        ) - total_variation(pred_pixel_values[None, :])
+
         self.log("val_loss", loss, sync_dist=True)
+        self.log("ssim_full_input", ssim_full_input, sync_dist=True)
+        self.log("ssim_no_cam", ssim_no_cam, sync_dist=True)
+        self.log("delta_total_variation", delta_total_variation, sync_dist=True)
+
         return loss
 
     def forward(self, batch):
