@@ -13,9 +13,9 @@ from data_utils.dataset_modules import KITTI360DataModule
 def main():
     mae_encoder = ViT(
         image_size=(64, 1024),
-        patch_size=8,  # Try 8, standard 16x16, SegFormer 4x4
+        patch_size=8,  # Standard 16x16, SegFormer 4x4
         num_classes=1000,
-        dim=2048,  # 1024,
+        dim=2048,
         depth=6,
         heads=8,
         mlp_dim=2048,
@@ -26,9 +26,9 @@ def main():
     mae = FusionMAE(
         mae_encoder=mae_encoder,
         fusion_encoder=fusion_encoder,
-        masking_ratio=0.5,  # the paper recommended 75% masked patches
-        decoder_dim=1024,  # paper showed good results with just 512
-        decoder_depth=6,  # anywhere from 1 to 8
+        masking_ratio=0.5,
+        decoder_dim=1024,
+        decoder_depth=6,
     )
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
