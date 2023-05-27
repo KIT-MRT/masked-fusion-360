@@ -33,6 +33,7 @@ def parse_args():
 def main():
     args = parse_args()
 
+    # LiDAR encoder
     mae_encoder = ViT(
         image_size=(64, 1024),
         patch_size=args.lidar_encoder_patch_size,  # Standard 16x16, SegFormer 4x4
@@ -43,7 +44,12 @@ def main():
         mlp_dim=args.lidar_encoder_mlp_dim,
     )
 
-    fusion_encoder = FusionEncoder()
+    # Camera encoder + fusion block
+    fusion_encoder = FusionEncoder(
+        vit_dim=args.lidar_encoder_dim,
+        patch_size=args.lidar_encoder_patch_size,
+        vit_mlp_dim=args.lidar_encoder_mlp_dim,
+    )
 
     mae = FusionMAE(
         mae_encoder=mae_encoder,
