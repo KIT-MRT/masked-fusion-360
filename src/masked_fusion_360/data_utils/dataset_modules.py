@@ -84,11 +84,12 @@ class KITTI360RangeFishEye(Dataset):
 
 
 class KITTI360DataModule(pl.LightningDataModule):
-    def __init__(self, batch_size=32, num_dataloader_workers=8, pin_memory=True):
+    def __init__(self, train_path, batch_size=32, num_dataloader_workers=8, pin_memory=True):
         super().__init__()
         self.batch_size = batch_size
         self.num_dataloader_workers = num_dataloader_workers
         self.pin_memory = pin_memory
+        self.train_path = train_path
 
     def prepare_data(self):
         pass
@@ -96,13 +97,13 @@ class KITTI360DataModule(pl.LightningDataModule):
     def setup(self, stage: str):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit":
-            kitti_full = KITTI360RangeFishEye()
+            kitti_full = KITTI360RangeFishEye(self.train_path)
             self.kitti_train, self.kitti_val = random_split(
                 kitti_full, [70000, 6251]
             )  # check how many samples and split 90:10
 
         if stage == "predict":
-            self.kitti_predict = KITTI360RangeFishEye()
+            self.kitti_predict = KITTI360RangeFishEye(self.train_path)
 
 
     def train_dataloader(self):
