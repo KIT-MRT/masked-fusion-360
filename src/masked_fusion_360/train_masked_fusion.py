@@ -48,6 +48,7 @@ def main():
     fusion_encoder = FusionEncoder(
         vit_dim=args.lidar_encoder_dim,
         patch_size=args.lidar_encoder_patch_size,
+        vit_dim=args.lidar_encoder_dim,
         vit_mlp_dim=args.lidar_encoder_mlp_dim,
     )
 
