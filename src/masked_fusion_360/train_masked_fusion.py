@@ -1,4 +1,3 @@
-# %cd /p/home/jusers/wagner20/juwels/masked-fusion/src/masked_fusion
 import torch
 
 from vit_pytorch import ViT
