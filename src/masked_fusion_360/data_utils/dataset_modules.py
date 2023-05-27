@@ -15,16 +15,15 @@ from .process_point_clouds import (
 
 
 class KITTI360RangeFishEye(Dataset):
-    def __init__(self):
-        self.imgs_path = "/p/project/hai_mrt_pc/KITTI-360"
+    def __init__(self, imgs_path="/p/project/hai_mrt_pc/KITTI-360"):
         img2_paths = sorted(
-            glob.glob(self.imgs_path + "/data_2d_raw/*/image_02/data_rgb/*.png")
+            glob.glob(imgs_path + "/data_2d_raw/*/image_02/data_rgb/*.png")
         )
         img3_paths = sorted(
-            glob.glob(self.imgs_path + "/data_2d_raw/*/image_03/data_rgb/*.png")
+            glob.glob(imgs_path + "/data_2d_raw/*/image_03/data_rgb/*.png")
         )
         lidar_paths = sorted(
-            glob.glob(self.imgs_path + "/data_3d_raw/*/velodyne_points/data/*.bin")
+            glob.glob(imgs_path + "/data_3d_raw/*/velodyne_points/data/*.bin")
         )
 
         self.data = []
@@ -63,6 +62,13 @@ class KITTI360RangeFishEye(Dataset):
             lidar_img[..., 3],
             lidar_img[..., 4],
         )
+        
+        # To remove points way below ground level (~false detections)
+        height_view[height_view < -3.0] = 0.0
+
+        # LiDAR sensor is mounted at 1.73m -> set areas where no points are to ground level
+        height_view[height_view == 0.0] = -1.73
+
         height_view, intensity_view, range_view = (
             min_max_scaling(height_view),
             min_max_scaling(intensity_view),
@@ -97,6 +103,13 @@ class KITTI360DataModule(pl.LightningDataModule):
 
         if stage == "predict":
             self.kitti_predict = KITTI360RangeFishEye()
+
+        # if stage == "validate":
+        #     #self.kitti_val = KITTI360RangeFishEye(imgs_path="/p/project/hai_mrt_pc/KITTI-360/test")
+        #     kitti_full = KITTI360RangeFishEye()
+        #     self.kitti_val, _ = random_split(
+        #         kitti_full, [70000, 6251]
+        #     )  # check how many samples and split 90:10
 
     def train_dataloader(self):
         return DataLoader(
