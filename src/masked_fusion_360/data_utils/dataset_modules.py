@@ -104,12 +104,6 @@ class KITTI360DataModule(pl.LightningDataModule):
         if stage == "predict":
             self.kitti_predict = KITTI360RangeFishEye()
 
-        # if stage == "validate":
-        #     #self.kitti_val = KITTI360RangeFishEye(imgs_path="/p/project/hai_mrt_pc/KITTI-360/test")
-        #     kitti_full = KITTI360RangeFishEye()
-        #     self.kitti_val, _ = random_split(
-        #         kitti_full, [70000, 6251]
-        #     )  # check how many samples and split 90:10
 
     def train_dataloader(self):
         return DataLoader(
