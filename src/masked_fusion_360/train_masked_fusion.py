@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--num-nodes", type=int, required=False, default=1)
     parser.add_argument("--num-gpus-per-node", type=int, required=False, default=4)
     parser.add_argument("--train-hours", type=int, required=False, default=9)
+    parser.add_argument("--batch-size", type=int, required=False, default=24)
 
     args = parser.parse_args()
 
@@ -66,7 +67,8 @@ def main():
     )
 
     dm = KITTI360DataModule(
-        batch_size=24,
+        train_path=args.train_path,
+        batch_size=args.batch_size,
         num_dataloader_workers=10,
     )
 
