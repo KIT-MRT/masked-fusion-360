@@ -1,4 +1,6 @@
-# MaskedFusion360
+# MaskedFusion360: Reconstruct LiDAR Data by Querying Camera Features
+TL;DR: Self-supervised pre-training method to fuse LiDAR and camera features for self-driving applications. 
+
 ![Model architecture](masked-fusion-360.png)
 
 Reconstruct LiDAR data by querying camera features. Spherical projections of LiDAR data are transformed into patches, afterwards, randomly selected patches are removed and a MAE encoder is applied to the unmasked patches. The encoder output tokens are fused with camera features via cross-attention. Finally, a MAE decoder reconstructs the spherical LiDAR projections.
