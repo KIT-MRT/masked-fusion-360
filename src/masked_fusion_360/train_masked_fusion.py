@@ -81,19 +81,20 @@ def main():
 
     trainer.fit(mae, datamodule=dm)
 
-    save_time = datetime.utcnow().replace(microsecond=0).isoformat()
-    torch.save(
-        mae_encoder.state_dict(),
-        f"{args.save_dir}/models/pre-training/mae-encoder-{save_time}.pt",
-    )
-    torch.save(
-        fusion_encoder.state_dict(),
-        f"{args.save_dir}/models/pre-training/fusion-encoder-{save_time}.pt",
-    )
-    torch.save(
-        mae.state_dict(),
-        f"{args.save_dir}/models/pre-training/mae-{save_time}.pt",
-    )
+    if trainer.is_global_zero:
+        save_time = datetime.utcnow().replace(microsecond=0).isoformat()
+        torch.save(
+            mae_encoder.state_dict(),
+            f"{args.save_dir}/models/pre-training/mae-encoder-{save_time}.pt",
+        )
+        torch.save(
+            fusion_encoder.state_dict(),
+            f"{args.save_dir}/models/pre-training/fusion-encoder-{save_time}.pt",
+        )
+        torch.save(
+            mae.state_dict(),
+            f"{args.save_dir}/models/pre-training/mae-{save_time}.pt",
+        )
 
 
 if __name__ == "__main__":
