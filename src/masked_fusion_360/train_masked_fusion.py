@@ -13,10 +13,16 @@ from data_utils.dataset_modules import KITTI360DataModule
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lidar-encoder-patch-size", type=int, required=False, default=8)
+    parser.add_argument("--lidar-encoder-img-height", type=int, required=False, default=64)
+    parser.add_argument("--lidar-encoder-img-width", type=int, required=False, default=1024)
     parser.add_argument("--lidar-encoder-dim", type=int, required=False, default=2048)
     parser.add_argument("--lidar-encoder-depth", type=int, required=False, default=6)
     parser.add_argument("--lidar-encoder-heads", type=int, required=False, default=8)
     parser.add_argument("--lidar-encoder-mlp-dim", type=int, required=False, default=2048)
+
+    parser.add_argument("--camera-encoder-patch-size", type=int, required=False, default=8)
+    parser.add_argument("--camera-encoder-img-height", type=int, required=False, default=64)
+    parser.add_argument("--camera-encoder-img-width", type=int, required=False, default=1024)
 
     parser.add_argument("--train-path", type=str, required=True)
     parser.add_argument("--save-dir", type=str, required=True)
@@ -35,7 +41,7 @@ def main():
 
     # LiDAR encoder
     mae_encoder = ViT(
-        image_size=(64, 1024),
+        image_size=(args.lidar_encoder_img_height, args.lidar_encoder_img_width),
         patch_size=args.lidar_encoder_patch_size,  # Standard 16x16, SegFormer 4x4
         num_classes=1000,
         dim=args.lidar_encoder_dim,
@@ -46,8 +52,8 @@ def main():
 
     # Camera encoder + fusion block
     fusion_encoder = FusionEncoder(
-        vit_dim=args.lidar_encoder_dim,
-        patch_size=args.lidar_encoder_patch_size,
+        image_size=(args.camera_encoder_img_height, args.camera_encoder_img_width),
+        patch_size=args.camera_encoder_patch_size,
         vit_dim=args.lidar_encoder_dim,
         vit_mlp_dim=args.lidar_encoder_mlp_dim,
     )
