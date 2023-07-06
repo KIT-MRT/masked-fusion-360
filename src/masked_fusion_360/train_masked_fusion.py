@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from datetime import datetime
 
 from models.fusion_mae import FusionMAE, FusionEncoder
-from data_utils.dataset_modules import KITTI360DataModule
+from data_utils.dataset_modules import KITTI360DataModule, MRTJoyDataModule
 
 
 def parse_args():
@@ -30,6 +30,8 @@ def parse_args():
     parser.add_argument("--num-gpus-per-node", type=int, required=False, default=4)
     parser.add_argument("--train-hours", type=int, required=False, default=9)
     parser.add_argument("--batch-size", type=int, required=False, default=24)
+
+    parser.add_argument("--dataset-name", type=str, required=False, default="kitti360")
 
     args = parser.parse_args()
 
@@ -79,11 +81,18 @@ def main():
         callbacks=[lr_monitor],
     )
 
-    dm = KITTI360DataModule(
-        train_path=args.train_path,
-        batch_size=args.batch_size,
-        num_dataloader_workers=10,
-    )
+    if args.dataset_name == "kitti360":
+        dm = KITTI360DataModule(
+            train_path=args.train_path,
+            batch_size=args.batch_size,
+            num_dataloader_workers=10,
+        )
+    elif args.dataset_name == "mrt-joy":
+        dm = MRTJoyDataModule(
+            train_path=args.train_path,
+            batch_size=args.batch_size,
+            num_dataloader_workers=10,
+        )
 
     trainer.fit(mae, datamodule=dm)
 
