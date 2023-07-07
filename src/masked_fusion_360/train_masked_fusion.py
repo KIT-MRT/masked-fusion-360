@@ -32,6 +32,8 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, required=False, default=24)
 
     parser.add_argument("--dataset-name", type=str, required=False, default="kitti360")
+    parser.add_argument("--lr-epochs", type=int, required=False, default=50)
+    parser.add_argument("--checkpoint", type=str, required=False, default='')
 
     args = parser.parse_args()
 
@@ -66,7 +68,11 @@ def main():
         masking_ratio=0.5,
         decoder_dim=1024,
         decoder_depth=6,
+        epochs=args.lr_epochs,
     )
+
+    if args.checkpoint:
+        mae.load_state_dict(torch.load(args.checkpoint))
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
@@ -92,6 +98,7 @@ def main():
             train_path=args.train_path,
             batch_size=args.batch_size,
             num_dataloader_workers=10,
+            img_size=(args.lidar_encoder_img_height, args.lidar_encoder_img_width)
         )
 
     trainer.fit(mae, datamodule=dm)
@@ -100,15 +107,15 @@ def main():
         save_time = datetime.utcnow().replace(microsecond=0).isoformat()
         torch.save(
             mae_encoder.state_dict(),
-            f"{args.save_dir}/models/pre-training/mae-encoder-{save_time}.pt",
+            f"{args.save_dir}/models/pre-training/mae-encoder-{args.lidar_encoder_img_height}x{args.lidar_encoder_patch_size}-{save_time}.pt",
         )
         torch.save(
             fusion_encoder.state_dict(),
-            f"{args.save_dir}/models/pre-training/fusion-encoder-{save_time}.pt",
+            f"{args.save_dir}/models/pre-training/fusion-encoder-{args.lidar_encoder_img_height}x{args.lidar_encoder_patch_size}-{save_time}.pt",
         )
         torch.save(
             mae.state_dict(),
-            f"{args.save_dir}/models/pre-training/mae-{save_time}.pt",
+            f"{args.save_dir}/models/pre-training/mae-{args.lidar_encoder_img_height}x{args.lidar_encoder_patch_size}-{save_time}.pt",
         )
 
 
