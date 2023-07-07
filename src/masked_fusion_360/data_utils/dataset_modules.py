@@ -85,7 +85,7 @@ class KITTI360RangeFishEye(Dataset):
 
 class KITTI360DataModule(pl.LightningDataModule):
     def __init__(
-        self, train_path, batch_size=32, num_dataloader_workers=8, pin_memory=True
+        self, train_path, batch_size=32, num_dataloader_workers=8, pin_memory=True,
     ):
         super().__init__()
         self.batch_size = batch_size
@@ -201,6 +201,7 @@ class MRTJoyDataset(Dataset):
         self.transform = transforms.Compose(
             [
                 transforms.ToTensor(),
+                # transforms.RandomHorizontalFlip(),
             ]
         )
 
@@ -269,13 +270,15 @@ class MRTJoyDataset(Dataset):
 
 class MRTJoyDataModule(pl.LightningDataModule):
     def __init__(
-        self, train_path, batch_size=32, num_dataloader_workers=8, pin_memory=True
+        self, train_path, batch_size=32, num_dataloader_workers=8, pin_memory=True,
+        img_size=(128, 2048)
     ):
         super().__init__()
         self.batch_size = batch_size
         self.num_dataloader_workers = num_dataloader_workers
         self.pin_memory = pin_memory
         self.train_path = train_path
+        self.img_size = img_size
 
     def prepare_data(self):
         pass
@@ -283,11 +286,11 @@ class MRTJoyDataModule(pl.LightningDataModule):
     def setup(self, stage: str):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit":
-            datset_full = MRTJoyDataset(self.train_path)
+            datset_full = MRTJoyDataset(self.train_path, img_size=self.img_size)
             self.train_split, self.val_split = random_split(datset_full, [2500, 500])
 
         if stage == "predict":
-            self.predict_split = MRTJoyDataset(self.train_path)
+            self.predict_split = MRTJoyDataset(self.train_path, img_size=self.img_size)
 
     def train_dataloader(self):
         return DataLoader(
