@@ -23,6 +23,7 @@ class FusionMAE(pl.LightningModule):
         decoder_heads=8,
         decoder_dim_head=64,
         lr=1e-4,
+        epochs=50,
     ):
         super().__init__()
         assert (
@@ -59,6 +60,7 @@ class FusionMAE(pl.LightningModule):
 
         self.lr = lr
         self.fusion_encoder = fusion_encoder
+        self.epochs = epochs
         # self.save_hyperparameters() # Throws SIGSEGV on Juwels?
 
     def _get_tokens_preds_loss(self, img_stack):
@@ -168,7 +170,7 @@ class FusionMAE(pl.LightningModule):
             "lr_scheduler": {
                 "scheduler": torch.optim.lr_scheduler.CosineAnnealingLR(
                     optimizer,
-                    T_max=50,
+                    T_max=self.epochs,
                     eta_min=1e-6,
                 ),
                 "interval": "epoch",
