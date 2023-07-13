@@ -1,4 +1,4 @@
-# MaskedFusion360: Reconstruct LiDAR Data by Querying Camera Features
+# MaskedFusion360: Reconstruct LiDAR Data by Querying Camera Features [![arXiv](https://img.shields.io/badge/arXiv-2306.07087-b31b1b.svg)](https://arxiv.org/abs/2306.07087)
 TL;DR: Self-supervised pre-training method to fuse LiDAR and camera features for self-driving applications. 
 
 ![Model architecture](masked-fusion-360.png)
