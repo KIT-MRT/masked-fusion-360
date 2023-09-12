@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 import torch.nn.functional as F
 
 from torch import nn
-from einops import repeat
+from einops import repeat, rearrange
 
 from vit_pytorch.vit import ViT, Transformer
 from vit_pytorch.cross_vit import CrossTransformer
@@ -22,6 +22,8 @@ class FusionMAE(pl.LightningModule):
         decoder_depth=1,
         decoder_heads=8,
         decoder_dim_head=64,
+        mae_patch_size=8,
+        mae_img_size=(64, 1024), # h x w
         lr=1e-4,
         epochs=50,
     ):
@@ -61,6 +63,8 @@ class FusionMAE(pl.LightningModule):
         self.lr = lr
         self.fusion_encoder = fusion_encoder
         self.epochs = epochs
+        self.mae_patch_size = mae_patch_size
+        self.mae_img_size = mae_img_size
         # self.save_hyperparameters() # Throws SIGSEGV on Juwels?
 
     def _get_tokens_preds_loss(self, img_stack):
@@ -126,15 +130,15 @@ class FusionMAE(pl.LightningModule):
         # calculate reconstruction loss
         recon_loss = F.mse_loss(pred_pixel_values, masked_patches)
 
-        return tokens, masked_patches, masked_indices, pred_pixel_values, recon_loss
+        return patches, masked_patches, masked_indices, pred_pixel_values, batch_range, recon_loss
 
     def training_step(self, batch, batch_idx):
-        _, _, _, _, loss = self._get_tokens_preds_loss(batch)
+        _, _, _, _, _, loss = self._get_tokens_preds_loss(batch)
         self.log("train_loss", loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        _, masked_patches, _, pred_pixel_values, loss = self._get_tokens_preds_loss(
+        _, masked_patches, _, pred_pixel_values, _, loss = self._get_tokens_preds_loss(
             batch
         )
         ssim_full_input = multiscale_structural_similarity_index_measure(
@@ -142,7 +146,7 @@ class FusionMAE(pl.LightningModule):
         )
         batch_no_cam = torch.zeros(batch.shape, device=torch.device("cuda"))
         batch_no_cam[:, 0:3, :, :] = batch[:, 0:3, :, :]
-        _, _, _, pred_pixel_values_no_cam, _ = self._get_tokens_preds_loss(batch_no_cam)
+        _, _, _, pred_pixel_values_no_cam, _, _ = self._get_tokens_preds_loss(batch_no_cam)
         ssim_no_cam = multiscale_structural_similarity_index_measure(
             masked_patches[None, :], pred_pixel_values_no_cam[None, :]
         )
@@ -158,10 +162,20 @@ class FusionMAE(pl.LightningModule):
         return loss
 
     def forward(self, batch):
-        tokens, masked_patches, masked_indices, preds, _ = self._get_tokens_preds_loss(
+        patches, masked_patches, masked_indices, preds, batch_range, _ = self._get_tokens_preds_loss(
             batch
         )
-        return tokens, masked_patches, masked_indices, preds
+        # Rearrange on GPU
+        patches[batch_range, masked_indices] = preds.type(torch.float32)
+        recon_img = rearrange(
+            patches, "b (h w) (p1 p2 c) -> b c (h p1) (w p2)", 
+            p1=self.mae_patch_size, 
+            p2=self.mae_patch_size, 
+            h=self.mae_img_size[0]//self.mae_patch_size, 
+            w=self.mae_img_size[1]//self.mae_patch_size,
+        )
+        
+        return patches, masked_patches, masked_indices, preds, recon_img
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
