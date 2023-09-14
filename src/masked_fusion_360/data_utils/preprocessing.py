@@ -20,11 +20,11 @@ def preprocess_sample(stitched_cam_img, lidar_intensity_img, lidar_range_img, im
     # Min-max on LiDAR projs
     lidar_intensity_img = min_max_scaling(
         (
-            cv2.resize(lidar_intensity_img, img_dim)[..., 0]
+            cv2.resize(lidar_intensity_img, img_dim)
         ).astype(np.float32)
     )
     lidar_range_img = min_max_scaling(
-        (cv2.resize(lidar_range_img, img_dim)[..., 0]).astype(
+        (cv2.resize(lidar_range_img, img_dim)).astype(
             np.float32
         )
     )
@@ -38,4 +38,4 @@ def preprocess_sample(stitched_cam_img, lidar_intensity_img, lidar_range_img, im
 
     tensor_stack = torch.cat((lidar_tensor, img_tensor), 0)
 
-    return tensor_stack
+    return tensor_stack[None, ...]
