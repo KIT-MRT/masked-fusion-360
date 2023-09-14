@@ -15,7 +15,7 @@ from models.fusion_mae import FusionMAE, FusionEncoder
 
 
 def main():
-    def callback(*data, device="cpu"):
+    def callback(*data):
         print("imgs received")
         
         # TODO: cvbridge -- fast enough single threaded?
@@ -40,7 +40,7 @@ def main():
         print(fusion_mae_input.shape, fusion_mae_input.max(), fusion_mae_input.min())
 
         with torch.no_grad():
-            *_, recon_img  = fusion_mae(fusion_mae_input.to(device))
+            *_, recon_img  = fusion_mae(fusion_mae_input.to(fusion_mae.device))
         
         print(recon_img.shape, recon_img.max())
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
@@ -119,7 +119,9 @@ def main():
         decoder_depth=6,
     )
 
-    fusion_mae.to("cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    fusion_mae.to(device)
 
     # http://wiki.ros.org/message_filters#Example_.28Python.29-1
     ts = message_filters.ApproximateTimeSynchronizer(
