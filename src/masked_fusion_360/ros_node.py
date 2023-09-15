@@ -9,7 +9,7 @@ from cv_bridge import CvBridge
 from vit_pytorch import ViT
 
 from data_utils.naive_img_stitching import stitch_boxring_imgs
-from ros_utils.ros_opencv_utils import imgmsg_to_cv2, cv2_to_imgmsg, imgmsg_to_cv2_f32, f32c1_imgmsg_to_opencv, f32c1_immsg_to_nparray
+from ros_utils.ros_opencv_utils import imgmsg_to_cv2, cv2_to_imgmsg, f32c1_imgmsg_to_nparray
 from data_utils.preprocessing import preprocess_sample, min_max_scaling
 from models.fusion_mae import FusionMAE, FusionEncoder
 
@@ -25,8 +25,8 @@ def main():
         front_img = opencv_bridge.imgmsg_to_cv2(data[3])
         front_left_img = opencv_bridge.imgmsg_to_cv2(data[4])
         front_right_img = opencv_bridge.imgmsg_to_cv2(data[5])
-        intensity_img = f32c1_immsg_to_nparray(img_msg=data[6])
-        range_img = f32c1_immsg_to_nparray(img_msg=data[7])
+        intensity_img = f32c1_imgmsg_to_nparray(img_msg=data[6])
+        range_img = f32c1_imgmsg_to_nparray(img_msg=data[7])
 
 
         # TODO: naive stitching and pre-processing

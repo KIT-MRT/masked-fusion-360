@@ -19,7 +19,7 @@ def imgmsg_to_cv2(img_msg):
     return image_opencv
 
 
-def f32c1_immsg_to_nparray(img_msg):
+def f32c1_imgmsg_to_nparray(img_msg):
     dtype = np.dtype("uint8") 
     dtype = dtype.newbyteorder('>' if img_msg.is_bigendian else '<')
     image_opencv = np.ndarray(shape=(img_msg.height * img_msg.width * 4), 
