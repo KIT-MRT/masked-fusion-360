@@ -41,7 +41,7 @@ def f32c1_imgmsg_to_nparray(img_msg):
     return image_opencv
 
 
-def f32c1_opencv_img_to_uint8(opencv_img):
+def f32_opencv_img_to_uint8(opencv_img):
     opencv_img = min_max_scaling(opencv_img)
     opencv_img = (opencv_img * 255).astype(np.uint8)
 
