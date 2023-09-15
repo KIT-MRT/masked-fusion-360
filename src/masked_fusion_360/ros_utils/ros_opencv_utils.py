@@ -41,6 +41,12 @@ def f32c1_immsg_to_nparray(img_msg):
     return image_opencv
 
 
+def f32c1_opencv_img_to_uint8(opencv_img):
+    opencv_img = min_max_scaling(opencv_img)
+    opencv_img = (opencv_img * 255).astype(np.uint8)
+
+    return opencv_img
+
 
 def cv2_to_imgmsg(cv_image):
     img_msg = Image()
@@ -51,3 +57,11 @@ def cv2_to_imgmsg(cv_image):
     img_msg.data = cv_image.tostring()
     img_msg.step = len(img_msg.data) // img_msg.height # That double line is actually integer division, not a comment
     return img_msg
+
+
+def min_max_scaling(x: np.ndarray) -> np.ndarray:
+    x_min, x_max = x.min(), x.max()
+    x -= x_min
+    x /= (x_max - x_min) + np.finfo(np.float32).eps
+
+    return x
