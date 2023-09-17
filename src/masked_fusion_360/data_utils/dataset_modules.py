@@ -147,10 +147,9 @@ class MRTJoyDataset(Dataset):
     def __init__(self, imgs_path, img_size=(128, 2048)):
 
         back_img_paths = sorted(glob.glob(imgs_path + "/camera_back/*.jpg"))
-
-        back_left_img_paths = sorted(glob.glob(imgs_path + "/camera_back/*.jpg"))
-
+        back_left_img_paths = sorted(glob.glob(imgs_path + "/camera_back_left/*.jpg"))
         back_right_img_paths = sorted(glob.glob(imgs_path + "/camera_back_right/*.jpg"))
+        
         front_img_paths = sorted(glob.glob(imgs_path + "/camera_front/*.jpg"))
         front_left_img_paths = sorted(glob.glob(imgs_path + "/camera_front_left/*.jpg"))
         front_right_img_paths = sorted(
