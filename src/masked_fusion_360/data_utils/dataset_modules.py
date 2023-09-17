@@ -5,7 +5,7 @@ import numpy as np
 import pytorch_lightning as pl
 
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, Subset, DataLoader, random_split
 
 from .process_point_clouds import (
     read_kitti_point_cloud,
@@ -300,10 +300,13 @@ class MRTJoyDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage: str):
-        # Assign train/val datasets for use in dataloaders
+        num_samples = len(glob.glob(self.train_path + "/camera_front/*.jpg"))
+        num_val_samples = int(0.2 * num_samples)
+
         if stage == "fit":
-            datset_full = MRTJoyDataset(self.train_path, img_size=self.img_size)
-            self.train_split, self.val_split = random_split(datset_full, [2500, 500])
+            dataset_full = MRTJoyDataset(self.train_path, img_size=self.img_size)
+            self.train_split = Subset(dataset_full, torch.arange(0, num_samples - num_val_samples, 1))
+            self.val_split = Subset(dataset_full, torch.arange(num_samples - num_val_samples, num_samples, 1))
 
         if stage == "predict":
             self.predict_split = MRTJoyDataset(self.train_path, img_size=self.img_size)
