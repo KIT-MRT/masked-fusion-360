@@ -149,7 +149,7 @@ class MRTJoyDataset(Dataset):
         back_img_paths = sorted(glob.glob(imgs_path + "/camera_back/*.jpg"))
         back_left_img_paths = sorted(glob.glob(imgs_path + "/camera_back_left/*.jpg"))
         back_right_img_paths = sorted(glob.glob(imgs_path + "/camera_back_right/*.jpg"))
-        
+
         front_img_paths = sorted(glob.glob(imgs_path + "/camera_front/*.jpg"))
         front_left_img_paths = sorted(glob.glob(imgs_path + "/camera_front_left/*.jpg"))
         front_right_img_paths = sorted(
@@ -157,9 +157,11 @@ class MRTJoyDataset(Dataset):
         )
 
         lidar_intensity_paths = sorted(
-            glob.glob(imgs_path + "/lidar_intensity_image/*.png")
+            # glob.glob(imgs_path + "/lidar_intensity_image/*.png")
+            glob.glob(imgs_path + "/lidar_intensity_image/*.npz")
         )
-        lidar_range_paths = sorted(glob.glob(imgs_path + "/lidar_range_image/*.png"))
+        # lidar_range_paths = sorted(glob.glob(imgs_path + "/lidar_range_image/*.png"))
+        lidar_range_paths = sorted(glob.glob(imgs_path + "/lidar_range_image/*.npz"))
 
         self.data = []
 
@@ -196,6 +198,19 @@ class MRTJoyDataset(Dataset):
             )
 
         self.img_dim = (img_size[1], img_size[0])  # w x h since cv2
+
+        self.img_transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.ColorJitter(
+                    brightness=(0.7, 1.3),
+                    contrast=(0.8, 1.2),
+                    sturation=(0.9, 1.1),
+                    hue=(0.9, 1.1),
+                ),
+                # transforms.RandomHorizontalFlip(),
+            ]
+        )
 
         self.transform = transforms.Compose(
             [
@@ -246,11 +261,13 @@ class MRTJoyDataset(Dataset):
         # Min-max on LiDAR projs
         lidar_intensity_img = min_max_scaling(
             (
-                cv2.resize(cv2.imread(lidar_intensity_img_path), self.img_dim)[..., 0]
+                # cv2.resize(cv2.imread(lidar_intensity_img_path), self.img_dim)[..., 0]
+                cv2.resize(np.load(lidar_intensity_img_path), self.img_dim)
             ).astype(np.float32)
         )
         lidar_range_img = min_max_scaling(
-            (cv2.resize(cv2.imread(lidar_range_img_path), self.img_dim)[..., 0]).astype(
+            # (cv2.resize(cv2.imread(lidar_range_img_path), self.img_dim)[..., 0]).astype(
+            (cv2.resize(np.load(lidar_range_img_path), self.img_dim)).astype(
                 np.float32
             )
         )
@@ -259,7 +276,7 @@ class MRTJoyDataset(Dataset):
             (lidar_intensity_img, lidar_range_img, lidar_intensity_img)
         )  # Opt. change
 
-        img_tensor = self.transform(img_stack)
+        img_tensor = self.img_transform(img_stack)
         lidar_tensor = self.transform(lidar_img_stack)
 
         tensor_stack = torch.cat((lidar_tensor, img_tensor), 0)
