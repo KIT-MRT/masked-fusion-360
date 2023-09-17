@@ -205,7 +205,7 @@ class MRTJoyDataset(Dataset):
                 transforms.ColorJitter(
                     brightness=(0.7, 1.3),
                     contrast=(0.8, 1.2),
-                    sturation=(0.9, 1.1),
+                    saturation=(0.9, 1.1),
                     hue=(0.9, 1.1),
                 ),
                 # transforms.RandomHorizontalFlip(),
