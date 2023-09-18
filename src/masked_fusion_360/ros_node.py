@@ -9,7 +9,7 @@ from cv_bridge import CvBridge
 from vit_pytorch import ViT
 
 from data_utils.naive_img_stitching import stitch_boxring_imgs
-from ros_utils.ros_opencv_utils import imgmsg_to_cv2, cv2_to_imgmsg, f32c1_imgmsg_to_nparray
+from ros_utils.ros_opencv_utils import imgmsg_to_cv2, cv2_to_imgmsg, f32c1_imgmsg_to_nparray, f32_opencv_img_to_uint8
 from data_utils.preprocessing import preprocess_sample, min_max_scaling
 from models.fusion_mae import FusionMAE, FusionEncoder
 
@@ -36,6 +36,9 @@ def main():
         
         fusion_mae_input = preprocess_sample(stitched_img, intensity_img, range_img)
 
+        range_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(range_img)))
+        intensity_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(intensity_img)))
+
         # TODO: MaskedFusion360 inference
         print(fusion_mae_input.shape, fusion_mae_input.max(), fusion_mae_input.min())
 
@@ -44,7 +47,8 @@ def main():
         
         print(recon_img.shape, recon_img.max())
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
-        recon_img_np = recon_img[0].view(64, 1024, -1).to("cpu").numpy()
+        recon_img_np = recon_img[0].to("cpu").numpy()
+        recon_img_np = np.moveaxis(recon_img_np, 0, -1)
         recon_img_np = (recon_img_np * 255).astype(np.uint8)
         print(recon_img_np.shape, recon_img_np.min(), recon_img_np.max())
         recon_img_ros = cv2_to_imgmsg(recon_img_np)
@@ -90,6 +94,7 @@ def main():
     opencv_bridge = CvBridge()
     image_pub = rospy.Publisher("/output/stitched_image", Image)
     range_pub = rospy.Publisher("/output/range_decoded", Image)
+    intensity_pub = rospy.Publisher("/output/intensity_decoded", Image)
     recon_pub = rospy.Publisher("/output/reconstructed_lidar_imgs", Image)
     
     # LiDAR encoder
@@ -118,6 +123,8 @@ def main():
         decoder_dim=1024,
         decoder_depth=6,
     )
+
+    fusion_mae.load_state_dict(torch.load("weights/mae-64x8-2023-09-18T06:07:44.pt"))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
