@@ -11,6 +11,7 @@ from vit_pytorch import ViT
 from data_utils.naive_img_stitching import stitch_boxring_imgs
 from ros_utils.ros_opencv_utils import imgmsg_to_cv2, cv2_to_imgmsg, f32c1_imgmsg_to_nparray, f32_opencv_img_to_uint8
 from data_utils.preprocessing import preprocess_sample, min_max_scaling
+from data_utils.visualize import generate_reconstructed_img
 from models.fusion_mae import FusionMAE, FusionEncoder
 
 
@@ -43,7 +44,7 @@ def main():
         print(fusion_mae_input.shape, fusion_mae_input.max(), fusion_mae_input.min())
 
         with torch.no_grad():
-            *_, recon_img  = fusion_mae(fusion_mae_input.to(fusion_mae.device))
+            *_, masked_indices, preds, recon_img  = fusion_mae(fusion_mae_input.to(fusion_mae.device))
         
         print(recon_img.shape, recon_img.max())
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
@@ -52,9 +53,21 @@ def main():
         recon_img_np = (recon_img_np * 255).astype(np.uint8)
         print(recon_img_np.shape, recon_img_np.min(), recon_img_np.max())
         recon_img_ros = cv2_to_imgmsg(recon_img_np)
+        
+        # TODO: create masked lidar img
+        lidar_input = np.copy(recon_img_np)
+        masked_lidar_stack = generate_reconstructed_img(
+            base_img=lidar_input,
+            patch_indices=masked_indices[0].to("cpu").numpy(),
+            reconstructed_patches=np.ones((512, 192), dtype=np.uint8) + 254,
+            img_width=1024,
+            patch_size=8
+        )
 
-        # TODO: publish debug img
-        recon_pub.publish(recon_img_ros)
+        debug_img = np.vstack((stitched_img, masked_lidar_stack, recon_img_np))
+        debug_img_ros = cv2_to_imgmsg(debug_img)
+
+        recon_pub.publish(debug_img_ros)
     
     rospy.init_node("boxring_imgs_sub", anonymous=True)
 
