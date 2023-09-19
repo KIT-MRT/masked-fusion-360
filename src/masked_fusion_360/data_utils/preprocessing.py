@@ -13,20 +13,18 @@ def min_max_scaling(x: np.ndarray) -> np.ndarray:
     return x
 
 
-def preprocess_sample(stitched_cam_img, lidar_intensity_img, lidar_range_img, img_dim=(1024, 64)):
+def preprocess_sample(
+    stitched_cam_img, lidar_intensity_img, lidar_range_img, img_dim=(1024, 64)
+):
     # Min-max on image
     img_stack = min_max_scaling(stitched_cam_img.astype(np.float32))
 
     # Min-max on LiDAR projs
     lidar_intensity_img = min_max_scaling(
-        (
-            cv2.resize(lidar_intensity_img, img_dim)
-        ).astype(np.float32)
+        (cv2.resize(lidar_intensity_img, img_dim)).astype(np.float32)
     )
     lidar_range_img = min_max_scaling(
-        (cv2.resize(lidar_range_img, img_dim)).astype(
-            np.float32
-        )
+        (cv2.resize(lidar_range_img, img_dim)).astype(np.float32)
     )
 
     lidar_img_stack = np.dstack(
