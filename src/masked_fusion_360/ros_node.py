@@ -105,10 +105,10 @@ def main():
     )
 
     opencv_bridge = CvBridge()
-    image_pub = rospy.Publisher("/perception/simple_stitched_image", Image)
-    range_pub = rospy.Publisher("/perception/lidar_range_decoded", Image)
-    intensity_pub = rospy.Publisher("/perception/lidar_intensity_decoded", Image)
-    recon_pub = rospy.Publisher("/perception/reconstructed_lidar_image", Image)
+    image_pub = rospy.Publisher("/perception/masked_fusion_360/stitched_image", Image)
+    range_pub = rospy.Publisher("/perception/masked_fusion_360/lidar_range_decoded", Image)
+    intensity_pub = rospy.Publisher("/perception/masked_fusion_360/lidar_intensity_decoded", Image)
+    recon_pub = rospy.Publisher("/perception/masked_fusion_360/reconstructed_lidar_image", Image)
     
     # LiDAR encoder
     mae_encoder = ViT(
