@@ -18,8 +18,6 @@ from models.fusion_mae import FusionMAE, FusionEncoder
 def main():
     def callback(*data):
         print("imgs received")
-        
-        # TODO: cvbridge -- fast enough single threaded?
         back_img = opencv_bridge.imgmsg_to_cv2(data[0])
         back_left_img = opencv_bridge.imgmsg_to_cv2(data[1])
         back_right_img = opencv_bridge.imgmsg_to_cv2(data[2])
@@ -30,7 +28,7 @@ def main():
         range_img = f32c1_imgmsg_to_nparray(img_msg=data[7])
 
 
-        # TODO: naive stitching and pre-processing
+        # Naive stitching and pre-processing
         stitched_img = stitch_boxring_imgs(back_img, back_left_img, back_right_img, front_img, front_left_img, front_right_img)
         stitched_img_ros = cv2_to_imgmsg(stitched_img)
         image_pub.publish(stitched_img_ros)
@@ -40,7 +38,7 @@ def main():
         range_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(range_img)))
         intensity_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(intensity_img)))
 
-        # TODO: MaskedFusion360 inference
+        # MaskedFusion360 inference
         with torch.no_grad():
             *_, masked_indices, preds, recon_img  = fusion_mae(fusion_mae_input.to(fusion_mae.device))
         
@@ -49,7 +47,7 @@ def main():
         recon_img_np = np.moveaxis(recon_img_np, 0, -1)
         recon_img_np = (recon_img_np * 255).astype(np.uint8)
         
-        # TODO: create masked lidar img
+        # Create masked lidar img
         lidar_input = np.copy(recon_img_np)
         masked_lidar_stack = generate_reconstructed_img(
             base_img=lidar_input,
