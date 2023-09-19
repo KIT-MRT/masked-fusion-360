@@ -9,7 +9,11 @@ from cv_bridge import CvBridge
 from vit_pytorch import ViT
 
 from data_utils.naive_img_stitching import stitch_boxring_imgs
-from ros_utils.ros_opencv_utils import cv2_to_imgmsg, f32c1_imgmsg_to_nparray, f32_opencv_img_to_uint8
+from ros_utils.ros_opencv_utils import (
+    cv2_to_imgmsg,
+    f32c1_imgmsg_to_nparray,
+    f32_opencv_img_to_uint8,
+)
 from data_utils.preprocessing import preprocess_sample
 from data_utils.visualize import generate_reconstructed_img
 from models.fusion_mae import FusionMAE, FusionEncoder
@@ -27,12 +31,18 @@ def main():
         intensity_img = f32c1_imgmsg_to_nparray(img_msg=data[6])
         range_img = f32c1_imgmsg_to_nparray(img_msg=data[7])
 
-
         # Naive stitching and pre-processing
-        stitched_img = stitch_boxring_imgs(back_img, back_left_img, back_right_img, front_img, front_left_img, front_right_img)
+        stitched_img = stitch_boxring_imgs(
+            back_img,
+            back_left_img,
+            back_right_img,
+            front_img,
+            front_left_img,
+            front_right_img,
+        )
         stitched_img_ros = cv2_to_imgmsg(stitched_img)
         image_pub.publish(stitched_img_ros)
-        
+
         fusion_mae_input = preprocess_sample(stitched_img, intensity_img, range_img)
 
         range_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(range_img)))
@@ -40,13 +50,15 @@ def main():
 
         # MaskedFusion360 inference
         with torch.no_grad():
-            *_, masked_indices, preds, recon_img  = fusion_mae(fusion_mae_input.to(fusion_mae.device))
-        
+            *_, masked_indices, preds, recon_img = fusion_mae(
+                fusion_mae_input.to(fusion_mae.device)
+            )
+
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
         recon_img_np = recon_img[0].to("cpu").numpy()
         recon_img_np = np.moveaxis(recon_img_np, 0, -1)
         recon_img_np = (recon_img_np * 255).astype(np.uint8)
-        
+
         # Create masked lidar img
         lidar_input = np.copy(recon_img_np)
         masked_lidar_stack = generate_reconstructed_img(
@@ -54,55 +66,55 @@ def main():
             patch_indices=masked_indices[0].to("cpu").numpy(),
             reconstructed_patches=np.ones((512, 192), dtype=np.uint8) + 254,
             img_width=1024,
-            patch_size=8
+            patch_size=8,
         )
 
         debug_img = np.vstack((stitched_img, masked_lidar_stack, recon_img_np))
         debug_img_ros = cv2_to_imgmsg(debug_img)
 
         recon_pub.publish(debug_img_ros)
-    
+
     rospy.init_node("masked_fusion_360", anonymous=True)
 
     back_img_sub = message_filters.Subscriber(
-        "/sensor/camera/box_ring/back/atl071s_cc/raw/image",
-        Image
+        "/sensor/camera/box_ring/back/atl071s_cc/raw/image", Image
     )
     back_left_img_sub = message_filters.Subscriber(
-        "/sensor/camera/box_ring/back_left/atl071s_cc/raw/image",
-        Image
+        "/sensor/camera/box_ring/back_left/atl071s_cc/raw/image", Image
     )
     back_right_img_sub = message_filters.Subscriber(
-        "/sensor/camera/box_ring/back_right/atl071s_cc/raw/image",
-        Image
+        "/sensor/camera/box_ring/back_right/atl071s_cc/raw/image", Image
     )
     front_img_sub = message_filters.Subscriber(
-        "/sensor/camera/box_ring/front/atl071s_cc/raw/image",
-        Image
+        "/sensor/camera/box_ring/front/atl071s_cc/raw/image", Image
     )
     front_left_img_sub = message_filters.Subscriber(
-        "/sensor/camera/box_ring/front_left/atl071s_cc/raw/image",
-        Image
+        "/sensor/camera/box_ring/front_left/atl071s_cc/raw/image", Image
     )
     front_right_img_sub = message_filters.Subscriber(
-        "/sensor/camera/box_ring/front_right/atl071s_cc/raw/image",
-        Image
+        "/sensor/camera/box_ring/front_right/atl071s_cc/raw/image", Image
     )
     intensity_img_sub = message_filters.Subscriber(
-        "/sensor/lidar/box_top/center/vls128_ap/intensity_image",
-        Image
+        "/sensor/lidar/box_top/center/vls128_ap/intensity_image", Image
     )
     range_img_sub = message_filters.Subscriber(
-        "/sensor/lidar/box_top/center/vls128_ap/range_image",
-        Image
+        "/sensor/lidar/box_top/center/vls128_ap/range_image", Image
     )
 
     opencv_bridge = CvBridge()
-    image_pub = rospy.Publisher("/perception/masked_fusion_360/stitched_camera_image", Image)
-    range_pub = rospy.Publisher("/perception/masked_fusion_360/lidar_range_decoded", Image)
-    intensity_pub = rospy.Publisher("/perception/masked_fusion_360/lidar_intensity_decoded", Image)
-    recon_pub = rospy.Publisher("/perception/masked_fusion_360/reconstructed_lidar_image", Image)
-    
+    image_pub = rospy.Publisher(
+        "/perception/masked_fusion_360/stitched_camera_image", Image
+    )
+    range_pub = rospy.Publisher(
+        "/perception/masked_fusion_360/lidar_range_decoded", Image
+    )
+    intensity_pub = rospy.Publisher(
+        "/perception/masked_fusion_360/lidar_intensity_decoded", Image
+    )
+    recon_pub = rospy.Publisher(
+        "/perception/masked_fusion_360/reconstructed_lidar_image", Image
+    )
+
     # LiDAR encoder
     mae_encoder = ViT(
         image_size=(64, 1024),
@@ -139,7 +151,7 @@ def main():
     # http://wiki.ros.org/message_filters#Example_.28Python.29-1
     ts = message_filters.ApproximateTimeSynchronizer(
         fs=[
-            back_img_sub, 
+            back_img_sub,
             back_left_img_sub,
             back_right_img_sub,
             front_img_sub,
@@ -149,14 +161,14 @@ def main():
             range_img_sub,
         ],
         queue_size=10,
-        slop=0.2, # in secs
+        slop=0.2,  # in secs
     )
     ts.registerCallback(callback)
 
     rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except rospy.ROSInterruptException:
