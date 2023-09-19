@@ -17,7 +17,7 @@ from models.fusion_mae import FusionMAE, FusionEncoder
 
 def main():
     def callback(*data):
-        print("imgs received")
+        print("[MaskedFusion360] Images received")
         back_img = opencv_bridge.imgmsg_to_cv2(data[0])
         back_left_img = opencv_bridge.imgmsg_to_cv2(data[1])
         back_right_img = opencv_bridge.imgmsg_to_cv2(data[2])
