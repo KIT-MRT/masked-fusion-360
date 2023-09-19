@@ -9,8 +9,8 @@ from cv_bridge import CvBridge
 from vit_pytorch import ViT
 
 from data_utils.naive_img_stitching import stitch_boxring_imgs
-from ros_utils.ros_opencv_utils import imgmsg_to_cv2, cv2_to_imgmsg, f32c1_imgmsg_to_nparray, f32_opencv_img_to_uint8
-from data_utils.preprocessing import preprocess_sample, min_max_scaling
+from ros_utils.ros_opencv_utils import cv2_to_imgmsg, f32c1_imgmsg_to_nparray, f32_opencv_img_to_uint8
+from data_utils.preprocessing import preprocess_sample
 from data_utils.visualize import generate_reconstructed_img
 from models.fusion_mae import FusionMAE, FusionEncoder
 
@@ -106,7 +106,7 @@ def main():
     # LiDAR encoder
     mae_encoder = ViT(
         image_size=(64, 1024),
-        patch_size=8,  # Standard 16x16, SegFormer 4x4
+        patch_size=8,
         num_classes=1000,
         dim=2048,
         depth=6,
