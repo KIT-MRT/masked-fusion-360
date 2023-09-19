@@ -62,7 +62,7 @@ def main():
 
         recon_pub.publish(debug_img_ros)
     
-    rospy.init_node("boxring_imgs_sub", anonymous=True)
+    rospy.init_node("masked_fusion_360", anonymous=True)
 
     back_img_sub = message_filters.Subscriber(
         "/sensor/camera/box_ring/back/atl071s_cc/raw/image",
