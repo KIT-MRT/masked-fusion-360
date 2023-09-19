@@ -41,18 +41,13 @@ def main():
         intensity_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(intensity_img)))
 
         # TODO: MaskedFusion360 inference
-        print(fusion_mae_input.shape, fusion_mae_input.max(), fusion_mae_input.min())
-
         with torch.no_grad():
             *_, masked_indices, preds, recon_img  = fusion_mae(fusion_mae_input.to(fusion_mae.device))
         
-        print(recon_img.shape, recon_img.max())
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
         recon_img_np = recon_img[0].to("cpu").numpy()
         recon_img_np = np.moveaxis(recon_img_np, 0, -1)
         recon_img_np = (recon_img_np * 255).astype(np.uint8)
-        print(recon_img_np.shape, recon_img_np.min(), recon_img_np.max())
-        recon_img_ros = cv2_to_imgmsg(recon_img_np)
         
         # TODO: create masked lidar img
         lidar_input = np.copy(recon_img_np)
