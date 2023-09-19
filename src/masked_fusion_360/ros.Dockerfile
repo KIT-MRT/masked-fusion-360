@@ -4,4 +4,4 @@ RUN pip install vit-pytorch pytorch_lightning
 
 ADD . .
 
-CMD source /opt/ros/noetic/setup.bash && python3 ros_node.py
+CMD /bin/bash -c "source /opt/ros/noetic/setup.bash && python3 ros_node.py"
