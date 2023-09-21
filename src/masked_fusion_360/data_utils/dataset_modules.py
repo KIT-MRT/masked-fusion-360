@@ -203,10 +203,10 @@ class MRTJoyDataset(Dataset):
             [
                 transforms.ToTensor(),
                 transforms.ColorJitter(
-                    brightness=(0.7, 1.3),
-                    contrast=(0.8, 1.2),
-                    saturation=(0.9, 1.1),
-                    hue=(0.9, 1.1),
+                    brightness=0.3,
+                    contrast=0.2,
+                    saturation=0.1,
+                    hue=0.1,
                 ),
                 # transforms.RandomHorizontalFlip(),
             ]
@@ -262,12 +262,12 @@ class MRTJoyDataset(Dataset):
         lidar_intensity_img = min_max_scaling(
             (
                 # cv2.resize(cv2.imread(lidar_intensity_img_path), self.img_dim)[..., 0]
-                cv2.resize(np.load(lidar_intensity_img_path), self.img_dim)
+                cv2.resize(np.load(lidar_intensity_img_path)["arr_0"], self.img_dim)
             ).astype(np.float32)
         )
         lidar_range_img = min_max_scaling(
             # (cv2.resize(cv2.imread(lidar_range_img_path), self.img_dim)[..., 0]).astype(
-            (cv2.resize(np.load(lidar_range_img_path), self.img_dim)).astype(
+            (cv2.resize(np.load(lidar_range_img_path)["arr_0"], self.img_dim)).astype(
                 np.float32
             )
         )
