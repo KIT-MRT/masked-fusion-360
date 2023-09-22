@@ -5,7 +5,7 @@ import numpy as np
 import pytorch_lightning as pl
 
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, Subset, DataLoader, random_split
 
 from .process_point_clouds import (
     read_kitti_point_cloud,
@@ -147,10 +147,9 @@ class MRTJoyDataset(Dataset):
     def __init__(self, imgs_path, img_size=(128, 2048)):
 
         back_img_paths = sorted(glob.glob(imgs_path + "/camera_back/*.jpg"))
-
-        back_left_img_paths = sorted(glob.glob(imgs_path + "/camera_back/*.jpg"))
-
+        back_left_img_paths = sorted(glob.glob(imgs_path + "/camera_back_left/*.jpg"))
         back_right_img_paths = sorted(glob.glob(imgs_path + "/camera_back_right/*.jpg"))
+
         front_img_paths = sorted(glob.glob(imgs_path + "/camera_front/*.jpg"))
         front_left_img_paths = sorted(glob.glob(imgs_path + "/camera_front_left/*.jpg"))
         front_right_img_paths = sorted(
@@ -158,9 +157,11 @@ class MRTJoyDataset(Dataset):
         )
 
         lidar_intensity_paths = sorted(
-            glob.glob(imgs_path + "/lidar_intensity_image/*.png")
+            # glob.glob(imgs_path + "/lidar_intensity_image/*.png")
+            glob.glob(imgs_path + "/lidar_intensity_image/*.npz")
         )
-        lidar_range_paths = sorted(glob.glob(imgs_path + "/lidar_range_image/*.png"))
+        # lidar_range_paths = sorted(glob.glob(imgs_path + "/lidar_range_image/*.png"))
+        lidar_range_paths = sorted(glob.glob(imgs_path + "/lidar_range_image/*.npz"))
 
         self.data = []
 
@@ -197,6 +198,19 @@ class MRTJoyDataset(Dataset):
             )
 
         self.img_dim = (img_size[1], img_size[0])  # w x h since cv2
+
+        self.img_transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.ColorJitter(
+                    brightness=0.3,
+                    contrast=0.2,
+                    saturation=0.1,
+                    hue=0.1,
+                ),
+                # transforms.RandomHorizontalFlip(),
+            ]
+        )
 
         self.transform = transforms.Compose(
             [
@@ -247,11 +261,13 @@ class MRTJoyDataset(Dataset):
         # Min-max on LiDAR projs
         lidar_intensity_img = min_max_scaling(
             (
-                cv2.resize(cv2.imread(lidar_intensity_img_path), self.img_dim)[..., 0]
+                # cv2.resize(cv2.imread(lidar_intensity_img_path), self.img_dim)[..., 0]
+                cv2.resize(np.load(lidar_intensity_img_path)["arr_0"], self.img_dim)
             ).astype(np.float32)
         )
         lidar_range_img = min_max_scaling(
-            (cv2.resize(cv2.imread(lidar_range_img_path), self.img_dim)[..., 0]).astype(
+            # (cv2.resize(cv2.imread(lidar_range_img_path), self.img_dim)[..., 0]).astype(
+            (cv2.resize(np.load(lidar_range_img_path)["arr_0"], self.img_dim)).astype(
                 np.float32
             )
         )
@@ -260,7 +276,7 @@ class MRTJoyDataset(Dataset):
             (lidar_intensity_img, lidar_range_img, lidar_intensity_img)
         )  # Opt. change
 
-        img_tensor = self.transform(img_stack)
+        img_tensor = self.img_transform(img_stack)
         lidar_tensor = self.transform(lidar_img_stack)
 
         tensor_stack = torch.cat((lidar_tensor, img_tensor), 0)
@@ -284,10 +300,13 @@ class MRTJoyDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage: str):
-        # Assign train/val datasets for use in dataloaders
+        num_samples = len(glob.glob(self.train_path + "/camera_front/*.jpg"))
+        num_val_samples = int(0.2 * num_samples)
+
         if stage == "fit":
-            datset_full = MRTJoyDataset(self.train_path, img_size=self.img_size)
-            self.train_split, self.val_split = random_split(datset_full, [2500, 500])
+            dataset_full = MRTJoyDataset(self.train_path, img_size=self.img_size)
+            self.train_split = Subset(dataset_full, torch.arange(0, num_samples - num_val_samples, 1))
+            self.val_split = Subset(dataset_full, torch.arange(num_samples - num_val_samples, num_samples, 1))
 
         if stage == "predict":
             self.predict_split = MRTJoyDataset(self.train_path, img_size=self.img_size)

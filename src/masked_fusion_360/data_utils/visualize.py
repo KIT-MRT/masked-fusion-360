@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 from torchvision import transforms
-from dataset_modules import min_max_scaling
+from data_utils.dataset_modules import min_max_scaling
 
 
 def get_patch_pixelrange(indice, img_width=1024, patch_size=8):
