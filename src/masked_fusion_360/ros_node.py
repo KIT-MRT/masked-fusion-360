@@ -1,7 +1,10 @@
+import os
 import cv2
 import typer
 import rospy
 import torch
+import signal
+import rosgraph
 import numpy as np
 import message_filters
 
@@ -21,7 +24,7 @@ from models.fusion_mae import FusionMAE, FusionEncoder
 
 
 def main(log_level: int = rospy.ERROR):
-    def callback(*data):
+    def img_callback(*data):
         rospy.logdebug("[MaskedFusion360] Images received")
         back_img = opencv_bridge.imgmsg_to_cv2(data[0])
         back_left_img = opencv_bridge.imgmsg_to_cv2(data[1])
@@ -44,7 +47,8 @@ def main(log_level: int = rospy.ERROR):
             )
         except:
             rospy.logerr_throttle(
-                period=60, msg="[MaskedFusion360] Error during stitching",
+                period=60,
+                msg="[MaskedFusion360] Error during stitching",
             )
 
         stitched_img_ros = cv2_to_imgmsg(stitched_img)
@@ -63,7 +67,8 @@ def main(log_level: int = rospy.ERROR):
                 )
         except:
             rospy.logerr_throttle(
-                period=60, msg="[MaskedFusion360] Error during inference",
+                period=60,
+                msg="[MaskedFusion360] Error during inference",
             )
 
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
@@ -85,6 +90,13 @@ def main(log_level: int = rospy.ERROR):
         debug_img_ros = cv2_to_imgmsg(debug_img)
 
         recon_pub.publish(debug_img_ros)
+
+    def shutdown_callback(event):
+        if not rosgraph.is_master_online():
+            rospy.logerr_once(
+                "[MaskedFusion360] Shutdown, because the ROS master is not reachable"
+            )
+            os.kill(1, signal.SIGTERM)
 
     rospy.init_node("masked_fusion_360", log_level=log_level)
 
@@ -183,7 +195,8 @@ def main(log_level: int = rospy.ERROR):
         queue_size=10,
         slop=0.2,  # in secs
     )
-    ts.registerCallback(callback)
+    ts.registerCallback(img_callback)
+    rospy.Timer(rospy.Duration(secs=10), callback=shutdown_callback)
 
     rospy.spin()
 
@@ -192,4 +205,4 @@ if __name__ == "__main__":
     try:
         typer.run(main)
     except rospy.ROSInterruptException:
-        pass
+        rospy.logerr_once("[MaskedFusion360] Exiting due to ROSInterruptException")
