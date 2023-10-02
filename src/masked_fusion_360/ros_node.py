@@ -1,4 +1,5 @@
 import cv2
+import typer
 import rospy
 import torch
 import numpy as np
@@ -19,9 +20,9 @@ from data_utils.visualize import generate_reconstructed_img
 from models.fusion_mae import FusionMAE, FusionEncoder
 
 
-def main():
+def main(log_level: int = rospy.ERROR):
     def callback(*data):
-        print("[MaskedFusion360] Images received")
+        rospy.logdebug("[MaskedFusion360] Images received")
         back_img = opencv_bridge.imgmsg_to_cv2(data[0])
         back_left_img = opencv_bridge.imgmsg_to_cv2(data[1])
         back_right_img = opencv_bridge.imgmsg_to_cv2(data[2])
@@ -32,14 +33,20 @@ def main():
         range_img = f32c1_imgmsg_to_nparray(img_msg=data[7])
 
         # Naive stitching and pre-processing
-        stitched_img = stitch_boxring_imgs(
-            back_img,
-            back_left_img,
-            back_right_img,
-            front_img,
-            front_left_img,
-            front_right_img,
-        )
+        try:
+            stitched_img = stitch_boxring_imgs(
+                back_img,
+                back_left_img,
+                back_right_img,
+                front_img,
+                front_left_img,
+                front_right_img,
+            )
+        except:
+            rospy.logerr_throttle(
+                period=60, msg="[MaskedFusion360] Error during stitching",
+            )
+
         stitched_img_ros = cv2_to_imgmsg(stitched_img)
         image_pub.publish(stitched_img_ros)
 
@@ -49,9 +56,14 @@ def main():
         intensity_pub.publish(cv2_to_imgmsg(f32_opencv_img_to_uint8(intensity_img)))
 
         # MaskedFusion360 inference
-        with torch.no_grad():
-            *_, masked_indices, preds, recon_img = fusion_mae(
-                fusion_mae_input.to(fusion_mae.device)
+        try:
+            with torch.no_grad():
+                *_, masked_indices, preds, recon_img = fusion_mae(
+                    fusion_mae_input.to(fusion_mae.device)
+                )
+        except:
+            rospy.logerr_throttle(
+                period=60, msg="[MaskedFusion360] Error during inference",
             )
 
         recon_img = torch.clamp(recon_img, min=0.0, max=1.0)
@@ -74,7 +86,7 @@ def main():
 
         recon_pub.publish(debug_img_ros)
 
-    rospy.init_node("masked_fusion_360", anonymous=False)
+    rospy.init_node("masked_fusion_360", log_level=log_level)
 
     back_img_sub = message_filters.Subscriber(
         "/sensor/camera/box_ring/back/atl071s_cc/raw/image", Image
@@ -103,22 +115,22 @@ def main():
 
     opencv_bridge = CvBridge()
     image_pub = rospy.Publisher(
-        name="/perception/masked_fusion_360/stitched_camera_image", 
+        name="/perception/masked_fusion_360/stitched_camera_image",
         data_class=Image,
         queue_size=10,
     )
     range_pub = rospy.Publisher(
-        name="/perception/masked_fusion_360/lidar_range_decoded", 
+        name="/perception/masked_fusion_360/lidar_range_decoded",
         data_class=Image,
         queue_size=10,
     )
     intensity_pub = rospy.Publisher(
-        name="/perception/masked_fusion_360/lidar_intensity_decoded", 
+        name="/perception/masked_fusion_360/lidar_intensity_decoded",
         data_class=Image,
         queue_size=10,
     )
     recon_pub = rospy.Publisher(
-        name="/perception/masked_fusion_360/reconstructed_lidar_image", 
+        name="/perception/masked_fusion_360/reconstructed_lidar_image",
         data_class=Image,
         queue_size=10,
     )
@@ -178,6 +190,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        typer.run(main)
     except rospy.ROSInterruptException:
         pass

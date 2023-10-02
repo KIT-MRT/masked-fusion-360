@@ -1,6 +1,6 @@
 FROM mrt_pytorch_ros_base:latest
 
-RUN pip install vit-pytorch pytorch_lightning
+RUN pip install vit-pytorch pytorch_lightning "typer[all]"
 
 ADD . .
 
