@@ -96,7 +96,7 @@ def main(log_level: int = rospy.ERROR):
             rospy.logerr_once(
                 "[MaskedFusion360] Shutdown, because the ROS master is not reachable"
             )
-            os.kill(1, signal.SIGTERM)
+            os.kill(os.getpid(), signal.SIGTERM)
 
     rospy.init_node("masked_fusion_360", log_level=log_level)
 
