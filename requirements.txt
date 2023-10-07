@@ -5,4 +5,4 @@ pytorch_lightning==1.9.3
 numpy==1.23.4
 opencv-python==4.7.0.68
 einops==0.6.0
-vit_pytorch
+vit-pytorch==1.5.3
